@@ -58,7 +58,7 @@ function Login() {
         </h1>
 
         <p className="text-center text-gray-200 mt-2">
-          Login to your CampusConnect account
+          Login to your EduNexus account
         </p>
 
         {/* Email */}
@@ -237,7 +237,10 @@ function Login() {
       alert("Login Successful!");
       if (response.data.user.role === "admin") {
         navigate("/admin/dashboard");
-      } else {
+      } else if (response.data.user.role === "faculty") {
+        navigate("/faculty/dashboard");
+      }
+       else {
         navigate("/student/dashboard");
       }
 

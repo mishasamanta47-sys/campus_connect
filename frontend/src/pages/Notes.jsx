@@ -9,18 +9,14 @@ import {
   FaDownload,
   FaEye,
   FaFilter,
-  FaPlus,
   FaSpinner,
 } from "react-icons/fa";
 
 function Notes() {
   const navigate = useNavigate();
 
-  // =========================
-  // States
-  // =========================
-
   const [notes, setNotes] = useState([]);
+  const [subjects, setSubjects] = useState(["All"]);
   const [search, setSearch] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
 
@@ -28,12 +24,17 @@ function Notes() {
   const [error, setError] = useState("");
 
   // =========================
-  // Get Notes From Backend
+  // GET NOTES + SUBJECTS
   // =========================
 
   useEffect(() => {
     fetchNotes();
+    fetchSubjects();
   }, []);
+
+  // =========================
+  // GET NOTES
+  // =========================
 
   const fetchNotes = async () => {
     try {
@@ -51,94 +52,207 @@ function Notes() {
         }
       );
 
-      console.log("Notes API Response:", response.data);
-
-      // Backend response:
-      // {
-      //   message: "Notes fetched successfully",
-      //   notes: [...]
-      // }
+      console.log(
+        "Notes API Response:",
+        response.data
+      );
 
       setNotes(response.data.notes || []);
+
     } catch (err) {
-      console.error("Error fetching notes:", err);
+      console.error(
+        "Error fetching notes:",
+        err
+      );
 
       setError(
         err.response?.data?.message ||
           "Failed to load notes. Please try again."
       );
+
     } finally {
       setLoading(false);
     }
   };
 
   // =========================
-  // Subjects
+  // GET SUBJECTS FROM DATABASE
   // =========================
 
-  const subjects = [
-    "All",
-    "Data Structures",
-    "DBMS",
-    "Operating System",
-    "Computer Networks",
-  ];
+  const fetchSubjects = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const loggedInUser = JSON.parse(
+        localStorage.getItem("user")
+      );
+
+      const currentDepartment =
+        loggedInUser?.department;
+
+      const currentSemester =
+        String(loggedInUser?.semester);
+
+      const response = await axios.get(
+        "http://localhost:5000/api/subjects",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const allSubjects =
+        response.data.subjects || [];
+
+      // Filter according to student's
+      // department and semester
+
+      const studentSubjects =
+        allSubjects.filter(
+          (subject) =>
+            subject.department ===
+              currentDepartment &&
+            String(subject.semester) ===
+              currentSemester
+        );
+
+      // Remove duplicate subject names
+
+      const uniqueSubjects = [
+        ...new Set(
+          studentSubjects.map(
+            (subject) => subject.name
+          )
+        ),
+      ];
+
+      setSubjects([
+        "All",
+        ...uniqueSubjects,
+      ]);
+
+    } catch (err) {
+      console.error(
+        "Error fetching subjects:",
+        err
+      );
+
+      // Keep filter working even if
+      // subject API fails
+      setSubjects(["All"]);
+    }
+  };
 
   // =========================
-  // Search + Filter
+  // SEARCH + FILTER
   // =========================
 
-  const filteredNotes = notes.filter((note) => {
-    const searchText = search.toLowerCase();
+  const filteredNotes = notes.filter(
+    (note) => {
+      const searchText =
+        search.toLowerCase();
 
-    const matchesSearch =
-      (note.title || "").toLowerCase().includes(searchText) ||
-      (note.subject || "").toLowerCase().includes(searchText) ||
-      (note.description || "").toLowerCase().includes(searchText);
+      const matchesSearch =
+        (note.title || "")
+          .toLowerCase()
+          .includes(searchText) ||
 
-    const matchesSubject =
-      selectedSubject === "All" ||
-      note.subject === selectedSubject;
+        (note.subject || "")
+          .toLowerCase()
+          .includes(searchText) ||
 
-    return matchesSearch && matchesSubject;
-  });
+        (note.description || "")
+          .toLowerCase()
+          .includes(searchText);
+
+      const matchesSubject =
+        selectedSubject === "All" ||
+        note.subject ===
+          selectedSubject;
+
+      return (
+        matchesSearch &&
+        matchesSubject
+      );
+    }
+  );
 
   // =========================
-  // View Note
+  // GET FULL PDF URL
+  // =========================
+
+  const getFileUrl = (note) => {
+    if (!note.file_url) {
+      return null;
+    }
+
+    // Old external URL
+    if (
+      note.file_url.startsWith("http")
+    ) {
+      return note.file_url;
+    }
+
+    // New uploaded PDF
+    return `http://localhost:5000${note.file_url}`;
+  };
+
+  // =========================
+  // VIEW NOTE
   // =========================
 
   const handleView = (note) => {
-    if (!note.file_url || note.file_url === "#") {
-      alert("No file is available for this note.");
+    const fileUrl =
+      getFileUrl(note);
+
+    if (!fileUrl) {
+      alert(
+        "No PDF file is available for this note."
+      );
       return;
     }
 
-    window.open(note.file_url, "_blank");
+    window.open(
+      fileUrl,
+      "_blank"
+    );
   };
 
   // =========================
-  // Download Note
+  // DOWNLOAD NOTE
   // =========================
 
   const handleDownload = (note) => {
-    if (!note.file_url || note.file_url === "#") {
-      alert("No file is available for download.");
+    const fileUrl =
+      getFileUrl(note);
+
+    if (!fileUrl) {
+      alert(
+        "No PDF file is available for download."
+      );
       return;
     }
 
-    window.open(note.file_url, "_blank");
+    const link =
+      document.createElement("a");
+
+    link.href = fileUrl;
+    link.target = "_blank";
+
+    link.download = note.title
+      ? `${note.title}.pdf`
+      : "edunexus-note.pdf";
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
   };
 
   // =========================
-  // Upload Button
-  // =========================
-
-  const handleUpload = () => {
-    alert("Upload Notes feature will be added next.");
-  };
-
-  // =========================
-  // Loading Screen
+  // LOADING
   // =========================
 
   if (loading) {
@@ -164,7 +278,7 @@ function Notes() {
   }
 
   // =========================
-  // Main Page
+  // MAIN PAGE
   // =========================
 
   return (
@@ -176,12 +290,14 @@ function Notes() {
 
         <div className="max-w-7xl mx-auto px-6 py-6">
 
-          {/* Top Navigation */}
-
           <div className="flex items-center justify-between">
 
             <button
-              onClick={() => navigate("/student/dashboard")}
+              onClick={() =>
+                navigate(
+                  "/student/dashboard"
+                )
+              }
               className="
                 flex
                 items-center
@@ -195,29 +311,30 @@ function Notes() {
               "
             >
               <FaArrowLeft />
-
               Dashboard
             </button>
 
             <button
-              onClick={() => navigate("/student/dashboard")}
+              onClick={() =>
+                navigate(
+                  "/student/dashboard"
+                )
+              }
               className="text-xl font-bold"
             >
-              CampusConnect
+              EduNexus
             </button>
 
           </div>
 
-          {/* Page Title */}
-
           <div className="mt-8">
 
             <h1 className="text-4xl md:text-5xl font-bold">
-              📚 Study Notes
+               Study Notes
             </h1>
 
             <p className="mt-3 text-blue-100 text-lg">
-              Find and access your study materials easily.
+              Access study materials uploaded by your faculty.
             </p>
 
           </div>
@@ -230,7 +347,7 @@ function Notes() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
 
-        {/* ================= ERROR ================= */}
+        {/* ERROR */}
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-5 mb-6">
@@ -238,6 +355,7 @@ function Notes() {
             <div className="flex items-center justify-between">
 
               <div>
+
                 <h3 className="font-bold">
                   Unable to load notes
                 </h3>
@@ -245,6 +363,7 @@ function Notes() {
                 <p className="text-sm mt-1">
                   {error}
                 </p>
+
               </div>
 
               <button
@@ -265,7 +384,7 @@ function Notes() {
 
           <div className="flex flex-col lg:flex-row gap-4">
 
-            {/* Search */}
+            {/* SEARCH */}
 
             <div className="flex-1 relative">
 
@@ -283,7 +402,11 @@ function Notes() {
                 type="text"
                 placeholder="Search notes or subjects..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) =>
+                  setSearch(
+                    e.target.value
+                  )
+                }
                 className="
                   w-full
                   border
@@ -300,7 +423,7 @@ function Notes() {
 
             </div>
 
-            {/* Filter */}
+            {/* FILTER */}
 
             <div className="relative">
 
@@ -318,7 +441,9 @@ function Notes() {
               <select
                 value={selectedSubject}
                 onChange={(e) =>
-                  setSelectedSubject(e.target.value)
+                  setSelectedSubject(
+                    e.target.value
+                  )
                 }
                 className="
                   appearance-none
@@ -335,46 +460,20 @@ function Notes() {
                 "
               >
 
-                {subjects.map((subject) => (
-                  <option
-                    key={subject}
-                    value={subject}
-                  >
-                    {subject}
-                  </option>
-                ))}
+                {subjects.map(
+                  (subject) => (
+                    <option
+                      key={subject}
+                      value={subject}
+                    >
+                      {subject}
+                    </option>
+                  )
+                )}
 
               </select>
 
             </div>
-
-            {/* Upload */}
-
-            <button
-              onClick={handleUpload}
-              className="
-                flex
-                items-center
-                justify-center
-                gap-2
-                bg-gradient-to-r
-                from-blue-600
-                to-purple-600
-                text-white
-                px-6
-                py-4
-                rounded-xl
-                font-semibold
-                hover:shadow-lg
-                transition
-              "
-            >
-
-              <FaPlus />
-
-              Upload Notes
-
-            </button>
 
           </div>
 
@@ -387,181 +486,191 @@ function Notes() {
           <div>
 
             <h2 className="text-2xl font-bold text-gray-800">
-              Available Notes
+              Faculty Notes
             </h2>
 
             <p className="text-gray-500 mt-1">
-              {filteredNotes.length} notes found
+              {filteredNotes.length} notes available
             </p>
 
           </div>
 
         </div>
 
-        {/* ================= NOTES GRID ================= */}
+        {/* ================= NOTES ================= */}
 
         {filteredNotes.length > 0 ? (
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
-            {filteredNotes.map((note) => (
+            {filteredNotes.map(
+              (note) => (
 
-              <div
-                key={note.id}
-                className="
-                  bg-white
-                  rounded-2xl
-                  shadow-lg
-                  p-6
-                  hover:shadow-2xl
-                  hover:-translate-y-1
-                  transition
-                "
-              >
+                <div
+                  key={note.id}
+                  className="
+                    bg-white
+                    rounded-2xl
+                    shadow-lg
+                    p-6
+                    hover:shadow-2xl
+                    hover:-translate-y-1
+                    transition
+                  "
+                >
 
-                {/* Top */}
+                  {/* TOP */}
 
-                <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-start">
 
-                  <div
-                    className="
-                      w-14
-                      h-14
-                      rounded-xl
-                      bg-blue-100
-                      flex
-                      items-center
-                      justify-center
-                    "
-                  >
+                    <div
+                      className="
+                        w-14
+                        h-14
+                        rounded-xl
+                        bg-blue-100
+                        flex
+                        items-center
+                        justify-center
+                      "
+                    >
 
-                    <FaBook className="text-2xl text-blue-600" />
+                      <FaBook className="text-2xl text-blue-600" />
+
+                    </div>
+
+                    <span
+                      className="
+                        bg-red-100
+                        text-red-600
+                        px-3
+                        py-1
+                        rounded-full
+                        text-xs
+                        font-semibold
+                      "
+                    >
+                      PDF
+                    </span>
 
                   </div>
 
-                  <span
-                    className="
-                      bg-red-100
-                      text-red-600
-                      px-3
-                      py-1
-                      rounded-full
-                      text-xs
-                      font-semibold
-                    "
-                  >
-                    PDF
-                  </span>
+                  {/* TITLE */}
+
+                  <h3 className="text-xl font-bold text-gray-800 mt-5">
+                    {note.title}
+                  </h3>
+
+                  {/* SUBJECT */}
+
+                  <p className="text-blue-600 font-medium mt-2">
+                    {note.subject}
+                  </p>
+                  {/* UPLOADED BY */}
+
+                  <p className="text-sm text-gray-600 mt-2">
+                     Uploaded by{" "}
+                     <span className="font-semibold text-indigo-600">
+                        {note.uploaded_by_name || "Faculty"}
+                     </span>
+                    </p>
+
+                  {/* DESCRIPTION */}
+
+                  <p className="text-gray-500 text-sm mt-3 leading-6">
+                    {note.description}
+                  </p>
+
+                  {/* INFO */}
+
+                  <div className="flex justify-between items-center mt-5 text-sm">
+
+                    <span className="text-gray-500">
+                      Semester{" "}
+                      {note.semester}
+                    </span>
+
+                    <span className="text-gray-400">
+
+                      {note.created_at
+                        ? new Date(
+                            note.created_at
+                          ).toLocaleDateString()
+                        : "Recently"}
+
+                    </span>
+
+                  </div>
+
+                  {/* BUTTONS */}
+
+                  <div className="flex gap-3 mt-6">
+
+                    {/* VIEW */}
+
+                    <button
+                      onClick={() =>
+                        handleView(note)
+                      }
+                      className="
+                        flex-1
+                        flex
+                        items-center
+                        justify-center
+                        gap-2
+                        bg-blue-600
+                        hover:bg-blue-700
+                        text-white
+                        py-3
+                        rounded-xl
+                        font-medium
+                        transition
+                      "
+                    >
+
+                      <FaEye />
+                      View
+
+                    </button>
+
+                    {/* DOWNLOAD */}
+
+                    <button
+                      onClick={() =>
+                        handleDownload(
+                          note
+                        )
+                      }
+                      className="
+                        flex
+                        items-center
+                        justify-center
+                        px-4
+                        bg-gray-100
+                        hover:bg-gray-200
+                        text-gray-700
+                        rounded-xl
+                        transition
+                      "
+                      title="Download PDF"
+                    >
+
+                      <FaDownload />
+
+                    </button>
+
+                  </div>
 
                 </div>
 
-                {/* Title */}
-
-                <h3 className="text-xl font-bold text-gray-800 mt-5">
-
-                  {note.title}
-
-                </h3>
-
-                {/* Subject */}
-
-                <p className="text-blue-600 font-medium mt-2">
-
-                  {note.subject}
-
-                </p>
-
-                {/* Description */}
-
-                <p className="text-gray-500 text-sm mt-3 leading-6">
-
-                  {note.description}
-
-                </p>
-
-                {/* Info */}
-
-                <div className="flex justify-between items-center mt-5 text-sm">
-
-                  <span className="text-gray-500">
-
-                    Semester {note.semester}
-
-                  </span>
-
-                  <span className="text-gray-400">
-
-                    {note.created_at
-                      ? new Date(note.created_at).toLocaleDateString()
-                      : "Recently"}
-
-                  </span>
-
-                </div>
-
-                {/* Buttons */}
-
-                <div className="flex gap-3 mt-6">
-
-                  {/* View */}
-
-                  <button
-                    onClick={() => handleView(note)}
-                    className="
-                      flex-1
-                      flex
-                      items-center
-                      justify-center
-                      gap-2
-                      bg-blue-600
-                      hover:bg-blue-700
-                      text-white
-                      py-3
-                      rounded-xl
-                      font-medium
-                      transition
-                    "
-                  >
-
-                    <FaEye />
-
-                    View
-
-                  </button>
-
-                  {/* Download */}
-
-                  <button
-                    onClick={() => handleDownload(note)}
-                    className="
-                      flex
-                      items-center
-                      justify-center
-                      px-4
-                      bg-gray-100
-                      hover:bg-gray-200
-                      text-gray-700
-                      rounded-xl
-                      transition
-                    "
-                    title="Download"
-                  >
-
-                    <FaDownload />
-
-                  </button>
-
-                </div>
-
-              </div>
-
-            ))}
+              )
+            )}
 
           </div>
 
         ) : (
 
-          /* ================= NO RESULTS ================= */
+          /* ================= NO NOTES ================= */
 
           <div
             className="
@@ -576,11 +685,11 @@ function Notes() {
             <FaBook className="text-5xl text-gray-300 mx-auto" />
 
             <h2 className="text-2xl font-bold text-gray-700 mt-5">
-              No Notes Found
+              No Notes Available
             </h2>
 
             <p className="text-gray-500 mt-2">
-              Try another search term or subject.
+              Your faculty has not uploaded any notes yet.
             </p>
 
           </div>

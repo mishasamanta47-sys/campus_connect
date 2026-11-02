@@ -13,6 +13,7 @@ exports.getProfile = (req, res) => {
       department,
       semester,
       skills,
+      profile_photo,
       role
     FROM users
     WHERE id = ?
@@ -36,7 +37,10 @@ exports.getProfile = (req, res) => {
 
     res.json({
       success: true,
-      user: result[0],
+      user: {
+        ...result[0],
+        profilePhoto: result[0].profile_photo || null,
+      },
     });
   });
 };
@@ -53,7 +57,7 @@ exports.updateProfile = (req, res) => {
     skills,
   } = req.body;
 
-  const sql = `
+  let sql = `
     UPDATE users
     SET
       full_name = ?,
@@ -61,32 +65,43 @@ exports.updateProfile = (req, res) => {
       department = ?,
       semester = ?,
       skills = ?
-    WHERE id = ?
   `;
 
-  db.query(
-    sql,
-    [
-      full_name,
-      phone,
-      department,
-      semester,
-      skills,
-      userId,
-    ],
-    (err, result) => {
-      if (err) {
-        return res.status(500).json({
-          success: false,
-          message: "Update Failed",
-          error: err,
-        });
-      }
+  const values = [
+    full_name,
+    phone,
+    department,
+    semester,
+    skills || null,
+  ];
 
-      res.json({
-        success: true,
-        message: "Profile updated successfully",
+  if (req.file) {
+    sql += ", profile_photo = ?";
+    values.push(`/uploads/${req.file.filename}`);
+  }
+
+  sql += " WHERE id = ?";
+  values.push(userId);
+
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      return res.status(500).json({
+        success: false,
+        message: "Update Failed",
+        error: err,
       });
     }
-  );
+
+    const profilePhoto = req.file
+      ? `/uploads/${req.file.filename}`
+      : req.body.profilePhoto && req.body.profilePhoto !== "remove"
+        ? req.body.profilePhoto
+        : null;
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      profilePhoto,
+    });
+  });
 };

@@ -1,562 +1,459 @@
-import { useState } from "react";
+﻿import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  FaBars,
-  FaTimes,
-  FaTachometerAlt,
-  FaUsers,
-  FaBook,
-  FaBullhorn,
-  FaCalendarAlt,
-  FaBriefcase,
-  FaCog,
-  FaSignOutAlt,
   FaBell,
+  FaBook,
+  FaCalendarAlt,
+  FaChalkboardTeacher,
+  FaSyncAlt,
   FaUserCircle,
-  FaMoon,
+  FaUserClock,
+  FaUsers,
 } from "react-icons/fa";
 
 function AdminDashboard() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    totalStudents: 0,
+    pendingStudents: 0,
+    totalFaculty: 0,
+    activeFaculty: 0,
+    inactiveFaculty: 0,
+    totalNotes: 0,
+    totalEvents: 0,
+  });
 
-  const menuItems = [
-    { icon: <FaTachometerAlt />, title: "Dashboard" },
-    { icon: <FaUsers />, title: "Students" },
-    { icon: <FaBook />, title: "Notes" },
-    { icon: <FaBullhorn />, title: "Announcements" },
-    { icon: <FaCalendarAlt />, title: "Events" },
-    { icon: <FaBriefcase />, title: "Placements" },
-    { icon: <FaCog />, title: "Settings" },
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationError, setNotificationError] = useState("");
+
+  const fetchAdminNotifications = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("http://localhost:5000/api/notifications/5", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setNotifications(data.notifications || []);
+        setUnreadCount(
+          (data.notifications || []).filter(
+            (notification) => Number(notification.is_read) === 0
+          ).length
+        );
+      } else {
+        setNotificationError("Failed to load notifications");
+      }
+    } catch (err) {
+      console.error("Notification fetch error:", err);
+      setNotificationError("Could not load notifications");
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch(
+        `http://localhost:5000/api/notifications/${notificationId}/read`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ studentId: 5 }),
+        }
+      );
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        await fetchAdminNotifications();
+      }
+    } catch (err) {
+      console.error("Mark as read error:", err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("http://localhost:5000/api/notifications/read-all", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ studentId: 5 }),
+      });
+
+      const data = await response.json();
+      if (response.ok && data.success) {
+        await fetchAdminNotifications();
+      }
+    } catch (err) {
+      console.error("Mark all as read error:", err);
+    }
+  };
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/login");
+        return;
+      }
+
+      const response = await fetch("http://localhost:5000/api/admin/dashboard/stats", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        navigate("/login");
+        return;
+      }
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to load dashboard statistics.");
+      }
+
+      setStats(data.stats);
+    } catch (err) {
+      console.error("Dashboard Statistics Error:", err);
+      setError(err.message || "Unable to connect to the backend. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardStats();
+    fetchAdminNotifications();
+  }, []);
+
+  const statCards = [
+    {
+      title: "Total Students",
+      value: stats.totalStudents,
+      icon: <FaUsers />,
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      path: "/admin/students",
+    },
+    {
+      title: "Pending Students",
+      value: stats.pendingStudents,
+      icon: <FaUserClock />,
+      color: "text-yellow-600",
+      bg: "bg-yellow-50",
+      path: "/admin/student-approval",
+    },
+    {
+      title: "Total Faculty",
+      value: stats.totalFaculty,
+      icon: <FaChalkboardTeacher />,
+      color: "text-indigo-600",
+      bg: "bg-indigo-50",
+      path: "/admin/faculty",
+    },
+    {
+      title: "Active Faculty",
+      value: stats.activeFaculty,
+      icon: <FaUsers />,
+      color: "text-green-600",
+      bg: "bg-green-50",
+      path: "/admin/faculty",
+    },
+    {
+      title: "Inactive Faculty",
+      value: stats.inactiveFaculty,
+      icon: <FaUsers />,
+      color: "text-red-600",
+      bg: "bg-red-50",
+      path: "/admin/faculty",
+    },
+    {
+      title: "Total Notes",
+      value: stats.totalNotes,
+      icon: <FaBook />,
+      color: "text-purple-600",
+      bg: "bg-purple-50",
+      path: "/admin/notes",
+    },
+    {
+      title: "Total Events",
+      value: stats.totalEvents,
+      icon: <FaCalendarAlt />,
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      path: null,
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-slate-100 flex">
+    <div className="admin-dashboard space-y-6">
+      <style>{`
+        .admin-dashboard {
+          font-family: "Poppins", "Segoe UI", sans-serif;
+        }
 
-      {/* Sidebar */}
+        .admin-hero {
+          background: linear-gradient(135deg, #3b82f6 0%, #4f46e5 40%, #7c3aed 100%);
+          box-shadow: 0 18px 30px rgba(79, 70, 229, 0.18);
+          border-radius: 4px;
+        }
 
-      <aside
-        className={`fixed md:static z-50 h-screen w-72 bg-gradient-to-b from-slate-900 via-blue-900 to-purple-900 text-white transform ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 transition duration-300`}
-      >
+        .admin-panel,
+        .admin-action-card {
+          border: 1px solid rgba(148, 163, 184, 0.18);
+          background: #ffffff;
+          border-radius: 4px;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
 
-        <div className="flex justify-between items-center p-6 border-b border-white/20">
+        .admin-action-card {
+          padding: 18px;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
 
-          <h1 className="text-2xl font-bold">
-            CampusConnect
-          </h1>
+        .admin-action-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 12px 20px rgba(15, 23, 42, 0.08);
+        }
+      `}</style>
 
-          <button
-            className="md:hidden"
-            onClick={() => setSidebarOpen(false)}
-          >
-            <FaTimes size={22} />
-          </button>
+      <div className="admin-hero relative overflow-hidden rounded-[4px] p-6 text-white md:p-8">
+        <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-white/10" />
+        <div className="pointer-events-none absolute -bottom-16 right-28 h-48 w-48 rounded-full bg-white/10" />
 
-        </div>
-
-        {/* Menu */}
-
-        <nav className="mt-8">
-
-          {menuItems.map((item, index) => (
-
-            <button
-              key={index}
-              className="w-full flex items-center gap-4 px-8 py-4 hover:bg-white/10 transition"
-            >
-              <span className="text-xl">
-                {item.icon}
-              </span>
-
-              <span className="font-medium">
-                {item.title}
-              </span>
-
-            </button>
-
-          ))}
-
-        </nav>
-
-        {/* Logout */}
-
-        <div className="absolute bottom-6 left-0 w-full px-6">
-
-          <button className="w-full bg-red-500 hover:bg-red-600 py-3 rounded-xl flex items-center justify-center gap-3 transition">
-
-            <FaSignOutAlt />
-
-            Logout
-
-          </button>
-
-        </div>
-
-      </aside>
-
-      {/* Main Content */}
-
-      <div className="flex-1">
-
-        {/* Header */}
-
-        <header className="bg-white shadow-md px-6 py-5 flex justify-between items-center">
-
-          <div className="flex items-center gap-4">
-
-            <button
-              className="md:hidden"
-              onClick={() => setSidebarOpen(true)}
-            >
-              <FaBars size={22} />
-            </button>
-
-            <h2 className="text-3xl font-bold text-gray-800">
-              Admin Dashboard
-            </h2>
-
-          </div>
-
-          <div className="flex items-center gap-5">
-
-            <button className="text-xl hover:text-blue-600">
-              <FaMoon />
-            </button>
-
-            <button className="text-xl hover:text-blue-600 relative">
-              <FaBell />
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
-                3
-              </span>
-            </button>
-
-            <div className="flex items-center gap-3">
-
-              <FaUserCircle className="text-4xl text-blue-600" />
-
-              <div>
-
-                <h4 className="font-bold">
-                  Admin
-                </h4>
-
-                <p className="text-sm text-gray-500">
-                  admin@campusconnect.com
-                </p>
-
-              </div>
-
+        <div className="relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center">
+          <div>
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-sm text-blue-50">
+              <FaUserCircle />
+              Admin Control Center
             </div>
 
-          </div>
-
-        </header>
-
-        {/* Welcome Banner */}
-
-        <section className="p-8">
-
-          <div className="rounded-3xl bg-gradient-to-r from-slate-900 via-blue-700 to-purple-700 text-white p-10 shadow-xl">
-
-            <h1 className="text-4xl font-bold">
-              Welcome, Administrator 👋
-            </h1>
-
-            <p className="mt-4 text-lg text-gray-200">
-              Manage students, announcements, notes, events, placements, and monitor all campus activities from one dashboard.
+            <h3 className="text-2xl font-extrabold md:text-3xl">Welcome back, Admin!</h3>
+            <p className="mt-3 max-w-xl leading-6 text-blue-100">
+              Your central hub for campus operations — streamline student services, coordinate faculty, organize academic resources, and stay on top of campus events and announcements.
             </p>
 
-          </div>
-          {/* Dashboard Statistics */}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mt-10">
-
-            {/* Students */}
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300">
-
-              <div className="flex justify-between items-center">
-
-                <div>
-
-                  <p className="text-gray-500">
-                    Total Students
-                  </p>
-
-                  <h2 className="text-4xl font-bold text-blue-600 mt-2">
-                    1,248
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
-
-                  <FaUsers className="text-3xl text-blue-600" />
-
-                </div>
-
-              </div>
-
-              <p className="mt-5 text-green-600 font-medium">
-                +28 New Registrations
-              </p>
-
-            </div>
-
-            {/* Notes */}
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300">
-
-              <div className="flex justify-between items-center">
-
-                <div>
-
-                  <p className="text-gray-500">
-                    Total Notes
-                  </p>
-
-                  <h2 className="text-4xl font-bold text-purple-600 mt-2">
-                    587
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center">
-
-                  <FaBook className="text-3xl text-purple-600" />
-
-                </div>
-
-              </div>
-
-              <p className="mt-5 text-green-600 font-medium">
-                +15 Uploaded Today
-              </p>
-
-            </div>
-
-            {/* Events */}
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300">
-
-              <div className="flex justify-between items-center">
-
-                <div>
-
-                  <p className="text-gray-500">
-                    Total Events
-                  </p>
-
-                  <h2 className="text-4xl font-bold text-orange-500 mt-2">
-                    42
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
-
-                  <FaCalendarAlt className="text-3xl text-orange-500" />
-
-                </div>
-
-              </div>
-
-              <p className="mt-5 text-green-600 font-medium">
-                6 Upcoming Events
-              </p>
-
-            </div>
-
-            {/* Placements */}
-
-            <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-2xl transition duration-300">
-
-              <div className="flex justify-between items-center">
-
-                <div>
-
-                  <p className="text-gray-500">
-                    Placement Drives
-                  </p>
-
-                  <h2 className="text-4xl font-bold text-green-600 mt-2">
-                    18
-                  </h2>
-
-                </div>
-
-                <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
-
-                  <FaBriefcase className="text-3xl text-green-600" />
-
-                </div>
-
-              </div>
-
-              <p className="mt-5 text-green-600 font-medium">
-                4 Active Companies
-              </p>
-
-            </div>
-
+            <button
+              type="button"
+              onClick={fetchDashboardStats}
+              disabled={loading}
+              className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 font-semibold text-indigo-700 shadow-md transition duration-300 hover:-translate-y-0.5 hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              <FaSyncAlt className={loading ? "animate-spin" : ""} />
+              {loading ? "Refreshing..." : "Refresh Statistics"}
+            </button>
           </div>
 
-          {/* System Overview */}
-
-          <div className="mt-10 bg-white rounded-2xl shadow-lg p-8">
-
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">
-              📈 System Overview
-            </h2>
-
-            <p className="text-gray-600 leading-7">
-              Welcome to the CampusConnect Admin Dashboard. From here, you can
-              manage students, approve notes, publish announcements, organize
-              events, update placement opportunities, and monitor overall campus
-              activity from a single, centralized platform.
-            </p>
-
+          <div className="relative flex items-center gap-3 rounded-2xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm md:min-w-52">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-white/20 text-2xl">
+              <FaCalendarAlt />
+            </div>
+            <div>
+              <p className="text-sm text-blue-100">Dashboard Overview</p>
+              <p className="mt-1 font-bold">EduNexus</p>
+              <p className="mt-1 text-xs text-blue-100">Your campus, organized.</p>
+            </div>
           </div>
-          {/* Student Management & Recent Activity */}
-          <div className="grid lg:grid-cols-2 gap-8 mt-10">
-
-            {/* Student Management */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-
-              <div className="flex justify-between items-center mb-6">
-
-                <h2 className="text-2xl font-bold text-gray-800">
-                  👨‍🎓 Recent Students
-                </h2>
-
-                <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                  View All
-                </button>
-
-              </div>
-
-              <div className="overflow-x-auto">
-
-                <table className="w-full">
-
-                  <thead>
-
-                    <tr className="border-b">
-
-                      <th className="text-left py-3">Name</th>
-                      <th className="text-left py-3">Department</th>
-                      <th className="text-left py-3">Status</th>
-
-                    </tr>
-
-                  </thead>
-
-                  <tbody>
-
-                    <tr className="border-b hover:bg-gray-50">
-
-                      <td className="py-4">Rahul Sharma</td>
-                      <td>CSE</td>
-                      <td>
-                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                          Active
-                        </span>
-                      </td>
-
-                    </tr>
-
-                    <tr className="border-b hover:bg-gray-50">
-
-                      <td className="py-4">Priya Das</td>
-                      <td>IT</td>
-                      <td>
-                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                          Active
-                        </span>
-                      </td>
-
-                    </tr>
-
-                    <tr className="hover:bg-gray-50">
-
-                      <td className="py-4">Arjun Roy</td>
-                      <td>ECE</td>
-                      <td>
-                        <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-sm">
-                          Pending
-                        </span>
-                      </td>
-
-                    </tr>
-
-                  </tbody>
-
-                </table>
-
-              </div>
-
-            </div>
-
-            {/* Recent Activities */}
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                📢 Recent Activities
-              </h2>
-
-              <div className="space-y-5">
-
-                <div className="flex gap-4">
-
-                  <div className="w-3 h-3 rounded-full bg-blue-600 mt-2"></div>
-
-                  <div>
-                    <h3 className="font-semibold">
-                      New student registered
-                    </h3>
-                    <p className="text-gray-500 text-sm">
-                      10 minutes ago
-                    </p>
-                  </div>
-
-                </div>
-
-                <div className="flex gap-4">
-
-                  <div className="w-3 h-3 rounded-full bg-green-600 mt-2"></div>
-
-                  <div>
-                    <h3 className="font-semibold">
-                      Placement drive published
-                    </h3>
-                    <p className="text-gray-500 text-sm">
-                      1 hour ago
-                    </p>
-                  </div>
-
-                </div>
-
-                <div className="flex gap-4">
-
-                  <div className="w-3 h-3 rounded-full bg-purple-600 mt-2"></div>
-
-                  <div>
-                    <h3 className="font-semibold">
-                      New announcement posted
-                    </h3>
-                    <p className="text-gray-500 text-sm">
-                      Today
-                    </p>
-                  </div>
-
-                </div>
-
-                <div className="flex gap-4">
-
-                  <div className="w-3 h-3 rounded-full bg-orange-500 mt-2"></div>
-
-                  <div>
-                    <h3 className="font-semibold">
-                      Event created successfully
-                    </h3>
-                    <p className="text-gray-500 text-sm">
-                      Yesterday
-                    </p>
-                  </div>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-          {/* Quick Actions & Analytics */}
-          <div className="grid lg:grid-cols-2 gap-8 mt-10">
-
-            {/* Quick Actions */}
-
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                ⚡ Quick Actions
-              </h2>
-
-              <div className="grid grid-cols-2 gap-4">
-
-                <button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-5 font-semibold transition">
-                  Add Student
-                </button>
-
-                <button className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl p-5 font-semibold transition">
-                  Add Note
-                </button>
-
-                <button className="bg-orange-500 hover:bg-orange-600 text-white rounded-xl p-5 font-semibold transition">
-                  Add Event
-                </button>
-
-                <button className="bg-green-600 hover:bg-green-700 text-white rounded-xl p-5 font-semibold transition">
-                  Add Placement
-                </button>
-
-              </div>
-
-            </div>
-
-            {/* Analytics */}
-
-            <div className="bg-white rounded-2xl shadow-lg p-6">
-
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">
-                📊 Analytics Summary
-              </h2>
-
-              <div className="space-y-6">
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span>Student Registrations</span>
-                    <span>85%</span>
-                  </div>
-
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className="bg-blue-600 h-3 rounded-full w-[85%]"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span>Notes Uploaded</span>
-                    <span>70%</span>
-                  </div>
-
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className="bg-purple-600 h-3 rounded-full w-[70%]"></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span>Placement Success</span>
-                    <span>92%</span>
-                  </div>
-
-                  <div className="w-full bg-gray-200 rounded-full h-3">
-                    <div className="bg-green-600 h-3 rounded-full w-[92%]"></div>
-                  </div>
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
+        </div>
       </div>
 
+      {error && (
+        <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+          <p className="font-semibold">Unable to load dashboard statistics</p>
+          <p className="mt-1 text-sm">{error}</p>
+          <button type="button" onClick={fetchDashboardStats} className="mt-3 text-sm font-semibold underline">
+            Try again
+          </button>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-4">
+        {statCards.map((card) => (
+          <button
+            key={card.title}
+            type="button"
+            onClick={() => card.path && navigate(card.path)}
+            disabled={!card.path}
+            className="admin-panel flex items-center gap-4 rounded-[4px] p-4 text-left disabled:cursor-default disabled:opacity-80"
+          >
+            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${card.bg} ${card.color}`}>
+              {card.icon}
+            </div>
+            <div className="flex-1">
+              <p className="text-sm text-gray-500">{card.title}</p>
+              <p className="mt-1 text-2xl font-bold text-gray-800">{card.value}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <div className="admin-panel xl:col-span-2 rounded-[4px] p-6">
+          <div className="mb-6 flex items-center justify-between gap-3">
+            <h3 className="text-xl font-bold text-gray-800">System Overview</h3>
+            <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-600">
+              System Active
+            </span>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><FaUsers className="text-xl" /></div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-800">Students registered</p>
+                <p className="text-sm text-gray-500">Total student accounts</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{loading ? "..." : Number(stats.totalStudents).toLocaleString("en-IN")}</p>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-purple-600"><FaBook className="text-xl" /></div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-800">Learning resources</p>
+                <p className="text-sm text-gray-500">Total notes available</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{loading ? "..." : Number(stats.totalNotes).toLocaleString("en-IN")}</p>
+            </div>
+
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-50 text-green-600"><FaCalendarAlt className="text-xl" /></div>
+              <div className="flex-1">
+                <p className="font-semibold text-gray-800">Campus events</p>
+                <p className="text-sm text-gray-500">Total events recorded</p>
+              </div>
+              <p className="text-2xl font-bold text-gray-800">{loading ? "..." : Number(stats.totalEvents).toLocaleString("en-IN")}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-panel rounded-[4px] p-6">
+          <h3 className="mb-6 text-xl font-bold text-gray-800">Faculty Summary</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between rounded-xl bg-indigo-50 px-4 py-3">
+              <span className="text-sm text-gray-600">Total Faculty</span>
+              <span className="text-2xl font-bold text-indigo-700">{loading ? "..." : stats.totalFaculty}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl bg-emerald-50 px-4 py-3">
+              <span className="text-sm text-gray-600">Active Faculty</span>
+              <span className="text-2xl font-bold text-emerald-700">{loading ? "..." : stats.activeFaculty}</span>
+            </div>
+            <div className="flex items-center justify-between rounded-xl bg-red-50 px-4 py-3">
+              <span className="text-sm text-gray-600">Inactive Faculty</span>
+              <span className="text-2xl font-bold text-red-700">{loading ? "..." : stats.inactiveFaculty}</span>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => navigate("/admin/faculty")}
+            className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700"
+          >
+            Manage Faculty
+          </button>
+        </div>
+      </div>
+
+      <div className="admin-panel rounded-[4px] p-6">
+        <h3 className="mb-6 text-xl font-bold text-gray-800">Quick Actions</h3>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <button type="button" onClick={() => navigate("/admin/student-approval")} className="admin-action-card flex items-center justify-between gap-3 rounded-[4px] text-left">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600"><FaUserClock className="text-lg" /></div>
+              <div>
+                <div className="font-semibold text-gray-800">Approve Students</div>
+                <div className="text-xs text-gray-500">Review pending registrations</div>
+              </div>
+            </div>
+            <span className="text-xl text-gray-400">→</span>
+          </button>
+
+          <button type="button" onClick={() => navigate("/admin/faculty")} className="admin-action-card flex items-center justify-between gap-3 rounded-[4px] text-left">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600"><FaChalkboardTeacher className="text-lg" /></div>
+              <div>
+                <div className="font-semibold text-gray-800">Manage Faculty</div>
+                <div className="text-xs text-gray-500">View and manage faculty</div>
+              </div>
+            </div>
+            <span className="text-xl text-gray-400">→</span>
+          </button>
+
+          <button type="button" onClick={() => navigate("/admin/subjects")} className="admin-action-card flex items-center justify-between gap-3 rounded-[4px] text-left">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-50 text-purple-600"><FaBook className="text-lg" /></div>
+              <div>
+                <div className="font-semibold text-gray-800">Manage Subjects</div>
+                <div className="text-xs text-gray-500">Add subjects by department and semester</div>
+              </div>
+            </div>
+            <span className="text-xl text-gray-400">→</span>
+          </button>
+
+          <button type="button" onClick={() => navigate("/admin/announcements")} className="admin-action-card flex items-center justify-between gap-3 rounded-[4px] text-left">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-amber-600"><FaBook className="text-lg" /></div>
+              <div>
+                <div className="font-semibold text-gray-800">Manage Announcements</div>
+                <div className="text-xs text-gray-500">Post department and semester notices</div>
+              </div>
+            </div>
+            <span className="text-xl text-gray-400">→</span>
+          </button>
+
+          <button type="button" onClick={() => navigate("/admin/notes")} className="admin-action-card flex items-center justify-between gap-3 rounded-[4px] text-left">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-fuchsia-50 text-fuchsia-600"><FaBook className="text-lg" /></div>
+              <div>
+                <div className="font-semibold text-gray-800">Manage Notes</div>
+                <div className="text-xs text-gray-500">Manage academic resources</div>
+              </div>
+            </div>
+            <span className="text-xl text-gray-400">→</span>
+          </button>
+         <button
+           type="button"
+           onClick={() => navigate("/publish-event")}
+           className="admin-action-card flex items-center justify-between gap-3 rounded-[4px] text-left"
+>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-50 text-orange-600"><FaCalendarAlt className="text-lg" /></div>
+              <div>
+                <div className="font-semibold text-gray-800">Manage Events</div>
+                <div className="text-xs text-gray-500">Explore campus events</div>
+              </div>
+            </div>
+            <span className="text-xl text-gray-400">→</span>
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

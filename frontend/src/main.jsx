@@ -7,6 +7,9 @@ import "./index.css";
 
 
 
+const savedTheme = window.localStorage.getItem("campus-theme");
+document.documentElement.setAttribute("data-theme", savedTheme === "night" ? "night" : "day");
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>

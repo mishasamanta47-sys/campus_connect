@@ -4,18 +4,11 @@ const userModel = require("../models/userModel");
 // ===============================
 // Get User Profile
 // ===============================
-const getUserProfile = (req, res) => {
+const getUserProfile = async (req, res) => {
   const userId = req.params.id;
 
-  userModel.findUserById(userId, (err, results) => {
-    if (err) {
-      console.error("Database Error:", err);
-
-      return res.status(500).json({
-        success: false,
-        message: "Database error",
-      });
-    }
+  try {
+    const results = await userModel.findUserById(userId);
 
     if (results.length === 0) {
       return res.status(404).json({
@@ -26,14 +19,23 @@ const getUserProfile = (req, res) => {
 
     const user = results[0];
 
-    // Never send password to frontend
     delete user.password;
 
-    res.json({
+    return res.json({
       success: true,
-      user,
+      user: {
+        ...user,
+        profilePhoto: user.profile_photo || null,
+      },
     });
-  });
+  } catch (error) {
+    console.error("Database Error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Database error",
+    });
+  }
 };
 
 
@@ -51,7 +53,16 @@ const updateUserProfile = (req, res) => {
     skills,
   } = req.body;
 
-  const sql = `
+  const db = require("../config/db");
+  const values = [
+    fullName,
+    phone,
+    department,
+    semester,
+    skills || null,
+  ];
+
+  let sql = `
     UPDATE users
     SET
       full_name = ?,
@@ -59,44 +70,45 @@ const updateUserProfile = (req, res) => {
       department = ?,
       semester = ?,
       skills = ?
-    WHERE id = ?
   `;
 
-  const db = require("../config/db");
+  if (req.file) {
+    sql += ", profile_photo = ?";
+    values.push(`/uploads/${req.file.filename}`);
+  }
 
-  db.query(
-    sql,
-    [
-      fullName,
-      phone,
-      department,
-      semester,
-      skills,
-      userId,
-    ],
-    (err, result) => {
-      if (err) {
-        console.error("Update Error:", err);
+  sql += " WHERE id = ?";
+  values.push(userId);
 
-        return res.status(500).json({
-          success: false,
-          message: "Failed to update profile",
-        });
-      }
+  db.query(sql, values, (err, result) => {
+    if (err) {
+      console.error("Update Error:", err);
 
-      if (result.affectedRows === 0) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-
-      res.json({
-        success: true,
-        message: "Profile updated successfully",
+      return res.status(500).json({
+        success: false,
+        message: "Failed to update profile",
       });
     }
-  );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const profilePhoto = req.file
+      ? `/uploads/${req.file.filename}`
+      : req.body.profilePhoto && req.body.profilePhoto !== "remove"
+        ? req.body.profilePhoto
+        : null;
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      profilePhoto,
+    });
+  });
 };
 
 

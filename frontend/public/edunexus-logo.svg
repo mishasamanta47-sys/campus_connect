@@ -1,0 +1,22 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="20" y1="12" x2="131" y2="145" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2DD4BF"/>
+      <stop offset="0.5" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="book" x1="39" y1="46" x2="117" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E0F2FE"/>
+      <stop offset="1" stop-color="#F8FAFC"/>
+    </linearGradient>
+  </defs>
+  <rect x="8" y="8" width="144" height="144" rx="36" fill="url(#bg)"/>
+  <path d="M38 49C38 44.5817 41.5817 41 46 41H77.5C88.8218 41 98 50.1782 98 61.5V111C92.6312 105.079 84.7157 101.5 76 101.5H46C41.5817 101.5 38 97.9183 38 93.5V49Z" fill="url(#book)" opacity="0.9"/>
+  <path d="M122 49C122 44.5817 118.418 41 114 41H82.5C71.1782 41 62 50.1782 62 61.5V111C67.3688 105.079 75.2843 101.5 84 101.5H114C118.418 101.5 122 97.9183 122 93.5V49Z" fill="url(#book)" opacity="0.8"/>
+  <path d="M97 52V109" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M63 52V109" stroke="#1E3A8A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M80 63C86.6667 68.3333 92 71 96 71" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>
+  <path d="M80 82C86.6667 87.3333 92 90 96 90" stroke="#0F172A" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="114" cy="113" r="13" fill="#F8FAFC" fill-opacity="0.2"/>
+  <path d="M112 105L119 112L131 100" stroke="#F8FAFC" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

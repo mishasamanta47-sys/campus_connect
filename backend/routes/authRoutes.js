@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const upload = require("../middleware/uploadMiddleware");
 
 const {
   register,
@@ -7,7 +8,7 @@ const {
 } = require("../controllers/authController");
 
 // Register Route
-router.post("/register", register);
+router.post("/register", upload.single("profileImage"), register);
 
 // Login Route
 router.post("/login", login);

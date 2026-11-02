@@ -50,26 +50,28 @@ function Landing() {
       <Navbar />
 
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 text-white min-h-screen flex items-center">
+      <section className="bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 text-white py-20 lg:py-24">
 
         <div className="max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
 
-          <div>
+          <div className="max-w-xl">
 
-            <span className="bg-white/20 px-4 py-2 rounded-full text-sm">
-              🚀 Smart Campus Management Platform
+            <span className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium tracking-wide text-blue-50 backdrop-blur-sm">
+               Smart Campus Management Platform
             </span>
 
-            <h1 className="text-5xl lg:text-7xl font-extrabold leading-tight mt-6">
+            <h1 className="text-5xl lg:text-7xl font-extrabold leading-[0.95] tracking-[-0.04em] mt-6">
               Connect Your
-              <span className="text-yellow-300">
-                {" "}Campus{" "}
+              <span className="block text-yellow-300">
+                Campus
               </span>
-              Smarter
+              <span className="block">
+                Smarter
+              </span>
             </h1>
 
-            <p className="mt-6 text-lg text-gray-200 leading-8">
-              CampusConnect is an all-in-one platform that helps students
+            <p className="mt-6 text-lg text-gray-200 leading-8 max-w-xl">
+              EduNexus is an all-in-one platform that helps students
               access notes, participate in events, explore placement
               opportunities, join clubs, and stay informed through
               announcements.
@@ -79,7 +81,7 @@ function Landing() {
 
               <Link
                 to="/register"
-                className="bg-white text-blue-700 px-8 py-4 rounded-xl font-bold hover:scale-105 duration-300 flex items-center gap-2"
+                className="bg-white text-blue-700 px-8 py-4 rounded-xl font-bold hover:scale-[1.02] duration-300 flex items-center gap-2 shadow-xl shadow-blue-900/10"
               >
                 Get Started
                 <FaArrowRight />
@@ -87,7 +89,7 @@ function Landing() {
 
               <Link
                 to="/login"
-                className="border-2 border-white px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-blue-700 duration-300"
+                className="border-2 border-white/70 bg-white/5 px-8 py-4 rounded-xl font-semibold hover:bg-white hover:text-blue-700 duration-300 shadow-lg shadow-blue-950/10"
               >
                 Login
               </Link>
@@ -98,13 +100,14 @@ function Landing() {
 
           {/* Hero Image */}
           <div className="hidden lg:flex justify-center">
-
-            <img
-              src="https://images.unsplash.com/photo-1523050854058-8df90110c9f8?w=800"
-              alt="Campus"
-              className="rounded-3xl shadow-2xl"
-            />
-
+            <div className="relative w-full max-w-[560px]">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-400/20 via-indigo-400/10 to-purple-500/20 blur-2xl rounded-[2rem]" />
+              <img
+                src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=900&q=80"
+                alt="University students collaborating in a modern campus environment"
+                className="relative rounded-[2rem] shadow-[0_30px_80px_rgba(15,23,42,0.35)] object-cover w-full h-[500px] border border-white/20"
+              />
+            </div>
           </div>
 
         </div>
@@ -185,13 +188,13 @@ function Landing() {
 
       </section>
       {/* Why Choose Us */}
-      <section className="py-24 bg-white">
+      <section id="about" className="py-24 bg-white">
 
         <div className="max-w-7xl mx-auto px-6">
 
           <div className="text-center mb-16">
             <h2 className="text-5xl font-bold text-gray-800">
-              Why Choose CampusConnect?
+              Why Choose EduNexus?
             </h2>
 
             <p className="mt-4 text-gray-600 text-lg">
@@ -301,7 +304,7 @@ function Landing() {
 
             <div className="card">
               <p className="text-gray-600 leading-7">
-                CampusConnect made accessing notes and events so easy.
+                EduNexus made accessing notes and events so easy.
               </p>
 
               <h4 className="mt-6 font-bold text-xl">
@@ -364,7 +367,7 @@ function Landing() {
 
             <div className="card">
               <h3 className="font-bold text-xl">
-                What is CampusConnect?
+                What is EduNexus?
               </h3>
 
               <p className="mt-3 text-gray-600">
@@ -379,7 +382,7 @@ function Landing() {
               </h3>
 
               <p className="mt-3 text-gray-600">
-                Yes, CampusConnect works perfectly on all devices.
+                Yes, EduNexus works perfectly on all devices.
               </p>
             </div>
 
@@ -398,111 +401,6 @@ function Landing() {
         </div>
 
       </section>
-      {/* Contact Section */}
-      <section
-        id="contact"
-        className="py-24 bg-slate-100"
-      >
-        <div className="max-w-7xl mx-auto px-6">
-
-          <div className="text-center mb-16">
-            <h2 className="text-5xl font-bold text-gray-800">
-              Contact Us
-            </h2>
-
-            <p className="mt-4 text-gray-600 text-lg">
-              We'd love to hear from you.
-            </p>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-12">
-
-            {/* Contact Info */}
-            <div className="card">
-
-              <h3 className="text-3xl font-bold mb-8">
-                Get In Touch
-              </h3>
-
-              <div className="space-y-6">
-
-                <div>
-                  <h4 className="font-bold text-lg">
-                    📍 Address
-                  </h4>
-
-                  <p className="text-gray-600">
-                    Your College Name, India
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-lg">
-                    📧 Email
-                  </h4>
-
-                  <p className="text-gray-600">
-                    support@campusconnect.com
-                  </p>
-                </div>
-
-                <div>
-                  <h4 className="font-bold text-lg">
-                    📞 Phone
-                  </h4>
-
-                  <p className="text-gray-600">
-                    +91 98765 43210
-                  </p>
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* Contact Form */}
-            <div className="card">
-
-              <h3 className="text-3xl font-bold mb-8">
-                Send a Message
-              </h3>
-
-              <form className="space-y-5">
-
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  className="input"
-                />
-
-                <input
-                  type="email"
-                  placeholder="Your Email"
-                  className="input"
-                />
-
-                <textarea
-                  rows="5"
-                  placeholder="Your Message"
-                  className="input resize-none"
-                ></textarea>
-
-                <button
-                  type="submit"
-                  className="btn-primary w-full"
-                >
-                  Send Message
-                </button>
-
-              </form>
-
-            </div>
-
-          </div>
-
-        </div>
-      </section>
-
       {/* Call To Action */}
       <section className="py-24 bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 text-white">
 
@@ -513,7 +411,7 @@ function Landing() {
           </h2>
 
           <p className="mt-6 text-xl text-gray-200">
-            Join CampusConnect today and experience smarter campus management.
+            Join EduNexus today and experience smarter campus management.
           </p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-6">

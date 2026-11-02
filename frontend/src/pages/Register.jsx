@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -27,16 +27,48 @@ function Register() {
     profileImage: null,
   });
 
+  const [profilePreview, setProfilePreview] = useState("");
   const [loading, setLoading] = useState(false);
+  const [departments, setDepartments] = useState([]);
 
   const navigate = useNavigate();
 
+  // =========================
+  // FETCH DEPARTMENTS
+  // =========================
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/api/departments"
+        );
+
+        setDepartments(response.data.departments || []);
+      } catch (error) {
+        console.error(
+          "Failed to load departments:",
+          error
+        );
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // =========================
+  // HANDLE INPUT CHANGE
+  // =========================
+
   const handleChange = (e) => {
     if (e.target.type === "file") {
+      const file = e.target.files[0];
       setFormData({
         ...formData,
-        profileImage: e.target.files[0],
+        profileImage: file || null,
       });
+
+      setProfilePreview(file ? URL.createObjectURL(file) : "");
     } else {
       setFormData({
         ...formData,
@@ -45,10 +77,91 @@ function Register() {
     }
   };
 
+  // =========================
+  // REGISTER FUNCTION
+  // =========================
+
+  async function handleRegister(e) {
+    e.preventDefault();
+
+    // Check password
+    if (formData.password !== formData.confirmPassword) {
+      alert("Passwords do not match.");
+      return;
+    }
+
+    // Check required fields
+    if (
+      !formData.fullName ||
+      !formData.email ||
+      !formData.phone ||
+      !formData.department ||
+      !formData.semester ||
+      !formData.password
+    ) {
+      alert("Please fill all required fields.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const payload = new FormData();
+      payload.append("fullName", formData.fullName);
+      payload.append("email", formData.email);
+      payload.append("phone", formData.phone);
+      payload.append("department", formData.department);
+      payload.append("semester", formData.semester);
+      payload.append("password", formData.password);
+
+      if (formData.profileImage) {
+        payload.append("profileImage", formData.profileImage);
+      }
+
+      const response = await axios.post(
+        "http://localhost:5000/api/register",
+        payload,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      alert(
+        response.data.message ||
+          "Registration Successful!"
+      );
+
+      navigate("/login");
+
+      // Reset form
+      setFormData({
+        fullName: "",
+        email: "",
+        phone: "",
+        department: "",
+        semester: "",
+        password: "",
+        confirmPassword: "",
+        profileImage: null,
+      });
+      setProfilePreview("");
+    } catch (error) {
+      alert(
+        error.response?.data?.message ||
+          "Registration failed."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-700 via-indigo-700 to-purple-700 flex items-center justify-center px-6 py-10">
 
       {/* Background Blur */}
+
       <div className="absolute top-10 left-10 w-72 h-72 bg-pink-500 rounded-full blur-3xl opacity-20"></div>
 
       <div className="absolute bottom-10 right-10 w-72 h-72 bg-cyan-400 rounded-full blur-3xl opacity-20"></div>
@@ -56,7 +169,7 @@ function Register() {
       {/* Register Card */}
 
       <form
-      onSubmit={handleRegister}
+        onSubmit={handleRegister}
         className="relative w-full max-w-2xl bg-white/10 backdrop-blur-xl border border-white/20 rounded-3xl shadow-2xl p-8"
       >
 
@@ -79,7 +192,7 @@ function Register() {
         </h1>
 
         <p className="text-center text-gray-200 mt-2">
-          Join CampusConnect today
+          Join EduNexus today
         </p>
 
         {/* Full Name */}
@@ -156,6 +269,7 @@ function Register() {
           </div>
 
         </div>
+
         {/* Department */}
 
         <div className="mt-6">
@@ -170,13 +284,20 @@ function Register() {
             onChange={handleChange}
             className="w-full mt-2 p-4 rounded-xl outline-none"
           >
-            <option value="">Select Department</option>
-            <option value="Computer Science">Computer Science</option>
-            <option value="Information Technology">Information Technology</option>
-            <option value="Electronics">Electronics</option>
-            <option value="Electrical">Electrical</option>
-            <option value="Mechanical">Mechanical</option>
-            <option value="Civil">Civil</option>
+
+            <option value="">
+              Select Department
+            </option>
+
+            {departments.map((dept) => (
+              <option
+                key={dept.id}
+                value={dept.name}
+              >
+                {dept.name}
+              </option>
+            ))}
+
           </select>
 
         </div>
@@ -195,16 +316,42 @@ function Register() {
             onChange={handleChange}
             className="w-full mt-2 p-4 rounded-xl outline-none"
           >
-            <option value="">Select Semester</option>
 
-            <option value="1">Semester 1</option>
-            <option value="2">Semester 2</option>
-            <option value="3">Semester 3</option>
-            <option value="4">Semester 4</option>
-            <option value="5">Semester 5</option>
-            <option value="6">Semester 6</option>
-            <option value="7">Semester 7</option>
-            <option value="8">Semester 8</option>
+            <option value="">
+              Select Semester
+            </option>
+
+            <option value="1">
+              Semester 1
+            </option>
+
+            <option value="2">
+              Semester 2
+            </option>
+
+            <option value="3">
+              Semester 3
+            </option>
+
+            <option value="4">
+              Semester 4
+            </option>
+
+            <option value="5">
+              Semester 5
+            </option>
+
+            <option value="6">
+              Semester 6
+            </option>
+
+            <option value="7">
+              Semester 7
+            </option>
+
+            <option value="8">
+              Semester 8
+            </option>
 
           </select>
 
@@ -218,12 +365,27 @@ function Register() {
             Profile Picture
           </label>
 
-          <input
-            type="file"
-            accept="image/*"
-            onChange={handleChange}
-            className="w-full mt-2 bg-white rounded-xl p-3"
-          />
+          <div className="mt-2 flex items-center gap-4 rounded-xl bg-white p-3">
+            {profilePreview ? (
+              <img
+                src={profilePreview}
+                alt="Profile preview"
+                className="h-14 w-14 rounded-full object-cover border border-slate-200"
+              />
+            ) : (
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-blue-100 to-purple-100 text-lg font-bold text-blue-700">
+                {formData.fullName ? formData.fullName.charAt(0).toUpperCase() : "U"}
+              </div>
+            )}
+
+            <input
+              type="file"
+              name="profileImage"
+              accept="image/*"
+              onChange={handleChange}
+              className="w-full text-sm text-slate-700 file:mr-4 file:rounded-full file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-white file:font-medium"
+            />
+          </div>
 
         </div>
 
@@ -240,7 +402,11 @@ function Register() {
             <FaLock className="text-gray-500" />
 
             <input
-              type={showPassword ? "text" : "password"}
+              type={
+                showPassword
+                  ? "text"
+                  : "password"
+              }
               name="password"
               placeholder="Create a password"
               className="w-full p-4 outline-none"
@@ -250,13 +416,17 @@ function Register() {
 
             <button
               type="button"
-              onClick={() => setShowPassword(!showPassword)}
+              onClick={() =>
+                setShowPassword(!showPassword)
+              }
             >
+
               {showPassword ? (
                 <FaEyeSlash className="text-gray-500" />
               ) : (
                 <FaEye className="text-gray-500" />
               )}
+
             </button>
 
           </div>
@@ -276,7 +446,11 @@ function Register() {
             <FaLock className="text-gray-500" />
 
             <input
-              type={showConfirmPassword ? "text" : "password"}
+              type={
+                showConfirmPassword
+                  ? "text"
+                  : "password"
+              }
               name="confirmPassword"
               placeholder="Confirm your password"
               className="w-full p-4 outline-none"
@@ -287,19 +461,24 @@ function Register() {
             <button
               type="button"
               onClick={() =>
-                setShowConfirmPassword(!showConfirmPassword)
+                setShowConfirmPassword(
+                  !showConfirmPassword
+                )
               }
             >
+
               {showConfirmPassword ? (
                 <FaEyeSlash className="text-gray-500" />
               ) : (
                 <FaEye className="text-gray-500" />
               )}
+
             </button>
 
           </div>
 
         </div>
+
         {/* Password Strength */}
 
         <div className="mt-4">
@@ -325,6 +504,7 @@ function Register() {
           </div>
 
           <p className="text-gray-200 text-xs mt-2">
+
             {formData.password.length === 0
               ? "Enter a password"
               : formData.password.length < 6
@@ -332,6 +512,7 @@ function Register() {
               : formData.password.length < 10
               ? "Medium Password"
               : "Strong Password"}
+
           </p>
 
         </div>
@@ -357,7 +538,8 @@ function Register() {
             and{" "}
             <span className="text-yellow-300 font-semibold">
               Privacy Policy
-            </span>.
+            </span>
+            .
           </label>
 
         </div>
@@ -369,6 +551,7 @@ function Register() {
           className="w-full mt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 rounded-xl font-semibold shadow-lg hover:scale-[1.02] transition duration-300 disabled:opacity-70"
           disabled={loading}
         >
+
           {loading ? (
             <div className="flex justify-center items-center gap-3">
 
@@ -380,6 +563,7 @@ function Register() {
           ) : (
             "Create Account"
           )}
+
         </button>
 
         {/* Divider */}
@@ -415,76 +599,26 @@ function Register() {
           </button>
 
         </div>
+
         {/* Login Link */}
 
         <p className="text-center text-gray-200 mt-8">
+
           Already have an account?{" "}
+
           <Link
             to="/login"
             className="text-yellow-300 font-semibold hover:text-yellow-200"
           >
             Login
           </Link>
+
         </p>
 
       </form>
+
     </div>
   );
-
-  // ===========================
-  // Register Function
-  // ===========================
-
-  async function handleRegister(e) {
-    e.preventDefault();
-
-    // Password Match Check
-    if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match.");
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const response = await axios.post(
-        "http://localhost:5000/api/register",
-        {
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          department: formData.department,
-          semester: formData.semester,
-          password: formData.password,
-        }
-      );
-
-      alert(response.data.message || "Registration Successful!");
-      navigate("/login");
-
-      // Reset Form
-      setFormData({
-        fullName: "",
-        email: "",
-        phone: "",
-        department: "",
-        semester: "",
-        password: "",
-        confirmPassword: "",
-        profileImage: null,
-      });
-
-      // Later we'll redirect to Login page
-
-    } catch (error) {
-      alert(
-        error.response?.data?.message ||
-        "Registration failed."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
 }
 
 export default Register;

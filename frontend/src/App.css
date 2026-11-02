@@ -182,3 +182,22 @@
     border-right-color: var(--border);
   }
 }
+/* EduNexus Admin Dashboard Dark Mode */
+.admin-dark-mode .bg-white {
+  background-color: #1f2937 !important;
+}
+
+.admin-dark-mode .bg-gray-100 {
+  background-color: #111827 !important;
+}
+
+.admin-dark-mode .text-gray-900,
+.admin-dark-mode .text-gray-800,
+.admin-dark-mode .text-gray-700 {
+  color: #f9fafb !important;
+}
+
+.admin-dark-mode .border-gray-200,
+.admin-dark-mode .border-gray-300 {
+  border-color: #374151 !important;
+}

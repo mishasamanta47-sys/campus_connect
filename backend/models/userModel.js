@@ -1,83 +1,120 @@
 const db = require("../config/db");
 
-// ===============================
 // Create a new user
-// ===============================
-const createUser = (user, callback) => {
+const createUser = async (user) => {
+  const role = user.role || "student";
+  const accountStatus =
+    user.account_status || (role === "student" ? "pending" : "active");
+
   const sql = `
     INSERT INTO users
-    (full_name, email, phone, department, semester, password)
-    VALUES (?, ?, ?, ?, ?, ?)
+    (
+      full_name,
+      email,
+      phone,
+      department,
+      department_id,
+      semester,
+      password,
+      role,
+      account_status,
+      profile_photo
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  db.query(
-    sql,
-    [
-      user.fullName,
-      user.email,
-      user.phone,
-      user.department,
-      user.semester,
-      user.password,
-    ],
-    callback
-  );
+  const [result] = await db.query(sql, [
+    user.fullName,
+    user.email,
+    user.phone,
+    user.department,
+    user.department_id || null,
+    user.semester,
+    user.password,
+    role,
+    accountStatus,
+    user.profile_photo || null,
+  ]);
+
+  return result;
 };
 
 
 // ===============================
 // Find user by email
 // ===============================
-const findUserByEmail = (email, callback) => {
+const findUserByEmail = async (email) => {
   const sql = `
     SELECT *
     FROM users
     WHERE email = ?
   `;
 
-  db.query(sql, [email], callback);
+  const [rows] = await db.query(sql, [email]);
+
+  return rows;
 };
 
 
 // ===============================
 // Find user by ID
 // ===============================
-const findUserById = (id, callback) => {
+const findUserById = async (id) => {
   const sql = `
     SELECT *
     FROM users
     WHERE id = ?
   `;
 
-  db.query(sql, [id], callback);
+  const [rows] = await db.query(sql, [id]);
+
+  return rows;
 };
 
 
 // ===============================
 // Update user profile
 // ===============================
-const updateUser = (id, user, callback) => {
+const updateUser = async (id, user) => {
   const sql = `
     UPDATE users
     SET
       full_name = ?,
       phone = ?,
       department = ?,
-      semester = ?
+      semester = ?,
+      profile_photo = ?
     WHERE id = ?
   `;
 
-  db.query(
-    sql,
-    [
-      user.full_name,
-      user.phone,
-      user.department,
-      user.semester,
-      id,
-    ],
-    callback
-  );
+  const [result] = await db.query(sql, [
+    user.full_name,
+    user.phone,
+    user.department,
+    user.semester,
+    user.profile_photo || null,
+    id,
+  ]);
+
+  return result;
+};
+
+// ===============================
+// Update user role
+// ===============================
+const updateRole = async (id, role) => {
+  const sql = `
+    UPDATE users
+    SET role = ?
+    WHERE id = ?
+  `;
+
+  const [result] = await db.query(sql, [
+    role,
+    id,
+  ]);
+
+  return result;
 };
 
 
@@ -89,4 +126,5 @@ module.exports = {
   findUserByEmail,
   findUserById,
   updateUser,
+  updateRole,
 };

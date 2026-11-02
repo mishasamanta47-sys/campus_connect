@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 
 // Database Connection
 const db = require("./config/db");
@@ -11,8 +12,22 @@ const authRoutes = require("./routes/authRoutes");
 const noteRoutes = require("./routes/noteRoutes");
 const profileRoutes = require("./routes/profileRoutes");
 const userRoutes = require("./routes/userRoutes");
-
+const eventRoutes = require("./routes/eventRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+const facultyRoutes = require("./routes/facultyRoutes");
+const departmentRoutes = require("./routes/departmentRoutes");
+const subjectRoutes= require("./routes/subjectRoutes");
+const academicRoutes = require("./routes/academicRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const assignmentRoutes = require("./routes/assignmentRoutes");
+const placementRoutes = require("./routes/placementRoutes");
 const app = express();
+
+app.use(
+  "/uploads",
+  express.static(path.join(__dirname, "uploads"))
+);
+
 
 
 
@@ -37,6 +52,17 @@ app.use("/api", authRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/users", userRoutes);
+console.log("Event routes file loaded");
+app.use("/api/events", eventRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/faculty", facultyRoutes);
+app.use("/api/departments", departmentRoutes);
+app.use("/api/subjects", subjectRoutes);
+app.use("/api/announcements", require("./routes/announcementRoutes"));
+app.use("/api/academic", academicRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/assignments", assignmentRoutes);
+app.use("/api/placements", placementRoutes);
 
 // =======================
 // Home Route
@@ -44,7 +70,7 @@ app.use("/api/users", userRoutes);
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "🚀 CampusConnect Backend is Running Successfully",
+    message: "🚀 EduNexus Backend is Running Successfully",
   });
 });
 

@@ -1,4 +1,5 @@
 const express = require("express");
+const upload = require("../middleware/uploadMiddleware");
 
 const {
   getUserProfile,
@@ -11,6 +12,6 @@ const router = express.Router();
 router.get("/:id", getUserProfile);
 
 // Update user profile
-router.put("/:id", updateUserProfile);
+router.put("/:id", upload.single("profileImage"), updateUserProfile);
 
 module.exports = router;

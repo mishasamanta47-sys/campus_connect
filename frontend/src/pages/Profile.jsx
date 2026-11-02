@@ -17,46 +17,69 @@ import {
 function Profile() {
   const navigate = useNavigate();
 
-  // Get logged-in user
-const storedUser =
-  JSON.parse(localStorage.getItem("user")) || {};
+  const storedUser = JSON.parse(localStorage.getItem("user") || "null") || {};
+  const role = storedUser.role || "student";
+  const dashboardPath = role === "faculty" ? "/faculty/dashboard" : "/student/dashboard";
+  const pageTitle = role === "faculty" ? "My Faculty Profile" : "My Profile";
+  const pageSubtitle = role === "faculty"
+    ? "Manage your academic and professional information."
+    : "Manage your personal and academic information.";
+
+  const normalizedStoredUser = {
+    ...storedUser,
+    role,
+    profilePhoto:
+      storedUser.profilePhoto ||
+      storedUser.profile_photo ||
+      storedUser.profileImage ||
+      "",
+  };
 
 const [editing, setEditing] = useState(false);
 const [loading, setLoading] = useState(true);
 const [saving, setSaving] = useState(false);
+const [selectedImage, setSelectedImage] = useState(null);
 
 const [formData, setFormData] = useState({
-  id: storedUser.id || "",
-  fullName: storedUser.fullName || "",
-  email: storedUser.email || "",
-  phone: storedUser.phone || "",
-  department: storedUser.department || "",
-  semester: storedUser.semester || "",
-  skills: storedUser.skills || "",
+  id: normalizedStoredUser.id || "",
+  fullName: normalizedStoredUser.fullName || "",
+  email: normalizedStoredUser.email || "",
+  phone: normalizedStoredUser.phone || "",
+  department: normalizedStoredUser.department || "",
+  semester: normalizedStoredUser.semester || "",
+  skills: normalizedStoredUser.skills || "",
+  profilePhoto: normalizedStoredUser.profilePhoto || "",
 });
 useEffect(() => {
   const loadProfile = async () => {
     try {
-      if (!storedUser.id) {
+      if (!normalizedStoredUser.id) {
         setLoading(false);
         return;
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/users/${storedUser.id}`
+        `http://localhost:5000/api/users/${normalizedStoredUser.id}`
       );
 
       const data = await response.json();
 
       if (response.ok && data.user) {
+        const profilePhoto =
+          data.user.profilePhoto ||
+          data.user.profile_photo ||
+          normalizedStoredUser.profilePhoto ||
+          "";
+
         setFormData({
           id: data.user.id,
-          full_Name: data.user.full_name || "",
+          fullName: data.user.full_name || data.user.fullName || "",
           email: data.user.email || "",
           phone: data.user.phone || "",
           department: data.user.department || "",
           semester: data.user.semester || "",
           skills: data.user.skills || "",
+          profilePhoto,
         });
       }
     } catch (error) {
@@ -82,20 +105,22 @@ useEffect(() => {
   try {
     setSaving(true);
 
+    const payload = new FormData();
+    payload.append("fullName", formData.fullName);
+    payload.append("phone", formData.phone);
+    payload.append("department", formData.department);
+    payload.append("semester", formData.semester);
+    payload.append("skills", formData.skills || "");
+
+    if (selectedImage) {
+      payload.append("profileImage", selectedImage);
+    }
+
     const response = await fetch(
       `http://localhost:5000/api/users/${formData.id}`,
       {
         method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fullName: formData.fullName,
-          phone: formData.phone,
-          department: formData.department,
-          semester: formData.semester,
-          skills: formData.skills,
-        }),
+        body: payload,
       }
     );
 
@@ -107,47 +132,74 @@ useEffect(() => {
       );
     }
 
-    // Update localStorage
-    const updatedUser = {
-      ...storedUser,
-      ...formData,
-    };
+    const savedPhoto = data.profilePhoto || formData.profilePhoto;
+   const updatedFormData = {
+     ...formData,
+     profilePhoto: savedPhoto,
+   };
 
-    localStorage.setItem(
-      "user",
-      JSON.stringify(updatedUser)
-    );
+   setFormData(updatedFormData);
 
-    setEditing(false);
+   const updatedUser = {
+     ...normalizedStoredUser,
+     ...updatedFormData,
+     fullName: updatedFormData.fullName,
+     profilePhoto: savedPhoto,
+     profile_photo: savedPhoto,
+   };
 
-    alert("Profile updated successfully! 🎉");
+   localStorage.setItem("user", JSON.stringify(updatedUser));
 
-  } catch (error) {
-    console.error("Profile update error:", error);
+   setEditing(false);
+   setSelectedImage(null);
 
-    alert(
-      error.message || "Failed to update profile"
-    );
-  } finally {
-    setSaving(false);
-  }
+   alert("Profile updated successfully! 🎉");
+
+ } catch (error) {
+   console.error("Profile update error:", error);
+
+   alert(
+     error.message || "Failed to update profile"
+   );
+ } finally {
+   setSaving(false);
+ }
 };
   // Cancel editing
   const handleCancel = () => {
     setFormData({
-      fullName: storedUser.fullName || "Student Name",
-      email: storedUser.email || "student@email.com",
-      phone: storedUser.phone || "",
-      department:
-        storedUser.department || "Computer Science",
-      semester: storedUser.semester || "Semester 4",
-      skills:
-        storedUser.skills ||
-        "HTML, CSS, JavaScript, React, C, C++",
+      id: normalizedStoredUser.id || "",
+      fullName: normalizedStoredUser.fullName || "Student Name",
+      email: normalizedStoredUser.email || "student@email.com",
+      phone: normalizedStoredUser.phone || "",
+      department: normalizedStoredUser.department || "Computer Science",
+      semester: normalizedStoredUser.semester || "Semester 4",
+      skills: normalizedStoredUser.skills || "HTML, CSS, JavaScript, React, C, C++",
+      profilePhoto: normalizedStoredUser.profilePhoto || "",
     });
 
+    setSelectedImage(null);
     setEditing(false);
   };
+
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setSelectedImage(file);
+    setFormData((previous) => ({
+      ...previous,
+      profilePhoto: URL.createObjectURL(file),
+    }));
+  };
+
+  const profileImageUrl = selectedImage
+    ? URL.createObjectURL(selectedImage)
+    : formData.profilePhoto
+      ? formData.profilePhoto.startsWith("http")
+        ? formData.profilePhoto
+        : `http://localhost:5000${formData.profilePhoto.startsWith("/") ? formData.profilePhoto : `/${formData.profilePhoto}`}`
+      : "";
 
   return (
     <div className="min-h-screen bg-slate-100">
@@ -163,9 +215,7 @@ useEffect(() => {
           <div className="flex items-center justify-between">
 
             <button
-              onClick={() =>
-                navigate("/student/dashboard")
-              }
+              onClick={() => navigate(dashboardPath)}
               className="
                 flex
                 items-center
@@ -183,12 +233,10 @@ useEffect(() => {
             </button>
 
             <button
-              onClick={() =>
-                navigate("/student/dashboard")
-              }
+              onClick={() => navigate(dashboardPath)}
               className="text-xl font-bold"
             >
-              CampusConnect
+              EduNexus
             </button>
 
           </div>
@@ -198,11 +246,11 @@ useEffect(() => {
           <div className="mt-8">
 
             <h1 className="text-4xl md:text-5xl font-bold">
-              My Profile
+              {pageTitle}
             </h1>
 
             <p className="mt-3 text-blue-100 text-lg">
-              Manage your personal and academic information.
+              {pageSubtitle}
             </p>
 
           </div>
@@ -257,14 +305,23 @@ useEffect(() => {
                 justify-center
                 border-4
                 border-white
+                overflow-hidden
               ">
 
-                <FaUserCircle
-                  className="
-                    text-8xl
-                    text-blue-600
-                  "
-                />
+                {profileImageUrl ? (
+                  <img
+                    src={profileImageUrl}
+                    alt="Profile avatar"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <FaUserCircle
+                    className="
+                      text-8xl
+                      text-blue-600
+                    "
+                  />
+                )}
 
               </div>
 
@@ -392,6 +449,20 @@ useEffect(() => {
             ">
               Personal Information
             </h2>
+
+            {editing && (
+              <div className="mb-6 rounded-2xl border border-dashed border-blue-200 bg-blue-50 p-4">
+                <label className="mb-2 block text-sm font-semibold text-gray-700">
+                  Change Profile Photo
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className="block w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 file:mr-3 file:rounded-full file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white"
+                />
+              </div>
+            )}
 
             <div className="
               grid
@@ -974,7 +1045,7 @@ useEffect(() => {
 
               <p className="text-blue-100 mt-2 leading-6">
                 Keep your department, semester, phone number
-                and skills updated so CampusConnect can provide
+                and skills updated so EduNexus can provide
                 you with more relevant academic and placement
                 opportunities.
               </p>
