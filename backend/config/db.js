@@ -4,7 +4,29 @@ const mysql = require("mysql2/promise");
 
 require("dotenv").config({ path: path.join(__dirname, "..", ".env") });
 
-const isProduction = process.env.NODE_ENV === "production" || process.env.VERCEL === "1";
+const isProduction =
+  process.env.NODE_ENV === "production" ||
+  process.env.RENDER === "true" ||
+  process.env.RENDER === "1" ||
+  process.env.VERCEL === "1";
+
+const parseDatabaseUrl = (databaseUrl) => {
+  if (!databaseUrl) return null;
+
+  try {
+    const url = new URL(databaseUrl);
+    return {
+      host: url.hostname,
+      port: Number(url.port || 3306),
+      user: decodeURIComponent(url.username),
+      password: decodeURIComponent(url.password),
+      database: decodeURIComponent(url.pathname.replace(/^\//, "")),
+    };
+  } catch (error) {
+    console.error("Invalid DATABASE_URL format:", error.message);
+    return null;
+  }
+};
 
 const localDbConfig = {
   host: "localhost",
@@ -14,7 +36,7 @@ const localDbConfig = {
   database: "campus_connect",
 };
 
-const productionDbConfig = {
+const envDbConfig = parseDatabaseUrl(process.env.DATABASE_URL) || {
   host: process.env.DB_HOST,
   port: Number(process.env.DB_PORT || 3306),
   user: process.env.DB_USER,
@@ -22,7 +44,7 @@ const productionDbConfig = {
   database: process.env.DB_NAME,
 };
 
-const dbConfig = isProduction ? productionDbConfig : localDbConfig;
+const dbConfig = isProduction ? envDbConfig || localDbConfig : localDbConfig;
 
 dbConfig.waitForConnections = true;
 dbConfig.connectionLimit = 10;
@@ -33,11 +55,14 @@ if (isProduction) {
 
   if (process.env.DB_SSL_CA_PATH && fs.existsSync(process.env.DB_SSL_CA_PATH)) {
     sslOptions.ca = fs.readFileSync(process.env.DB_SSL_CA_PATH);
-  } else {
+    sslOptions.rejectUnauthorized = true;
+  } else if (process.env.DB_SSL === "true" || process.env.DB_SSL === "1") {
     sslOptions.rejectUnauthorized = false;
   }
 
-  dbConfig.ssl = sslOptions;
+  if (Object.keys(sslOptions).length > 0) {
+    dbConfig.ssl = sslOptions;
+  }
 }
 
 const db = mysql.createPool(dbConfig);
